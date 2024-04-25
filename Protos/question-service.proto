@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+option csharp_namespace = "FiftyQuestionsServer";
+
+service QuestionHandler {
+
+  rpc Buzzer (BuzzerRequest) returns (BuzzerReply);
+
+  rpc RequestQuestionFileUpload (RequestFileUploadRequest) returns (RequestFileUploadResponse);
+
+  rpc UploadFile (stream FileChunk) returns (FileUploadResponse);
+
+  rpc CreateGameRoom (CreateGameRoomRequest) returns (CreateGameRoomResponse);
+
+  rpc AddParticipant (ParticipationRequest) returns (ParticipationResponse);
+
+  rpc ClearBuzzers (ClearBuzzersRequest) returns (ClearBuzzersResponse);
+}
+
+enum PlayerRole 
+{
+	GameMaster = 0;
+	Player = 1;
+	Spectator = 2;
+}
+// The request message containing the user's name.
+message BuzzerRequest {
+  string PlayerName = 1;
+  string PlayerID = 2;
+}
+
+// The response message containing the greetings.
+message BuzzerReply {
+  bool SuccessStatus = 1;
+  string PlayerName = 2;
+}
+
+message RequestFileUploadRequest {
+	int32 RoomNumber = 1;
+}
+
+message RequestFileUploadResponse {
+	bool Success = 1;
+	string CorrelationToken = 2;
+}
+
+message FileChunk {
+	string CorrelationToken = 1;
+	bytes ChunkData = 2;
+}
+
+message FileUploadResponse {
+	bool SuccessStatus = 1;
+}
+
+message CreateGameRoomRequest {
+	int32 PlayerAmount = 1;
+}
+
+message CreateGameRoomResponse {
+	int32 RoomNumber = 1;
+}
+
+message ParticipationRequest {
+	string PlayerName = 1;
+	string PlayerID = 2;
+	PlayerRole Role = 3;
+	int32 RoomNumber = 4;
+}
+
+message ParticipationResponse {
+	bool SuccesStatus = 1;
+}
+
+message ClearBuzzersRequest {
+	bool clear = 1;
+}
+
+message ClearBuzzersResponse {
+	bool cleared = 1;
+}
