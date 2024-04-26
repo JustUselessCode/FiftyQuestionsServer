@@ -66,7 +66,8 @@ public class QuestionService : QuestionHandler.QuestionHandlerBase
         // Right now even though a room number up to 999 999 is supported only a single Game Room will be allowed to exist at a time!
         if (Games.Count > 1)
         {
-            // It is intendet that this Exception has the Power to completely shut down the App
+            // It is intendet that this Exception has the Power to completely shut down the Service. 
+            // The number of concurrent games will probably be increased in the 
             throw new ApplicationException("To many concurrent Games! The Service is shutting down due to a potential Denial of Service Attack!");
         }
 
@@ -122,7 +123,7 @@ public class QuestionService : QuestionHandler.QuestionHandlerBase
 
             return await Task.FromResult(new RequestFileUploadResponse
             {
-                Success = false,
+                SuccessStatus = false,
                 CorrelationToken = null
             });
         }
@@ -131,7 +132,7 @@ public class QuestionService : QuestionHandler.QuestionHandlerBase
 
         return await Task.FromResult(new RequestFileUploadResponse
         {
-            Success = true,
+            SuccessStatus = true,
             CorrelationToken = correlationToken
         });
     }
@@ -139,9 +140,6 @@ public class QuestionService : QuestionHandler.QuestionHandlerBase
     public override async Task<FileUploadResponse> UploadFile(IAsyncStreamReader<FileChunk> requestStream, ServerCallContext context)
     {
         var _File = File.Create(QuestionStore, (int)GeneralHelper.DataSizes.Megabyte);
-        
-        List<byte[]> data = new();
-
 
         try
         {

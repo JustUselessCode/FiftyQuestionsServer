@@ -43,7 +43,7 @@ message RequestFileUploadRequest {
 }
 
 message RequestFileUploadResponse {
-	bool Success = 1;
+	bool SuccessStatus = 1;
 	string CorrelationToken = 2;
 }
 
