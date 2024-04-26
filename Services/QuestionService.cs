@@ -1,5 +1,8 @@
-using FiftyQuestionsServer.Entities;
 using Grpc.Core;
+using System.Text;
+using FiftyQuestionsServer.Helper;
+using FiftyQuestionsServer.Entities;
+using FiftyQuestionsServer.Exceptions;
 
 namespace FiftyQuestionsServer.Services;
 
@@ -7,53 +10,55 @@ public class QuestionService : QuestionHandler.QuestionHandlerBase
 {
     private readonly ILogger<QuestionService> _Logger;
 
-    private Random _Random { get; set; }
+    private Random _RandomRoomNumber { get; set; }
 
     private int[] RoomIdsInUse = new int[999_999];
 
-    private List<string> _Buzzers { get; set; }
+    private List<Player> _Buzzers { get; set; }
 
     private List<GameRoom> Games { get; set; }
+
+    private readonly static string QuestionStore = @"E:\50FragenStore\Questions.json";
 
     public QuestionService(ILogger<QuestionService> logger)
     {
         _Logger = logger;
-        _Buzzers = new List<string>();
+        _Buzzers = new List<Player>();
         Games = new List<GameRoom>();
-        _Random = new Random();
+        _RandomRoomNumber = new Random();
+        _Buzzers.Add(new Player("Test 1", PlayerRole.Player));
+        _Buzzers.Add(new Player("Tim Zander", PlayerRole.Player));
     }
 
     public override async Task<BuzzerReply> Buzzer(BuzzerRequest request, ServerCallContext context)
     {
-        _Buzzers.Add(request.PlayerID);
+        var wantedGame = Games.Find(Room => Room.RoomID == request.RoomID);
+        var wantedPlayer = wantedGame!.Players.Find(player => player.Id.ToString().Trim() == request.PlayerID);
+            
+        _Buzzers.Add(wantedPlayer!);
 
         var Reply = new BuzzerReply
         {
-            PlayerName = request.PlayerName,
-            SuccessStatus = _Buzzers.IndexOf(request.PlayerID) == 0 ? true : false,
+            PlayerName = wantedPlayer!.Name,
+            SuccessStatus = _Buzzers.IndexOf(wantedPlayer) == 0,
         };
+
+        foreach (var item in _Buzzers)
+        {
+            await Console.Out.WriteLineAsync(item.Name);
+
+        }
 
         return await Task.FromResult(Reply);
     }
 
     public override async Task<ClearBuzzersResponse> ClearBuzzers(ClearBuzzersRequest request, ServerCallContext context)
     {
-        if (request.Clear)
+        _Buzzers.Clear();
+        return await Task.FromResult(new ClearBuzzersResponse
         {
-            _Buzzers.Clear();
-            return await Task.FromResult(new ClearBuzzersResponse
-            {
-                Cleared = true
-            });
-        }
-
-        else
-        {
-            return await Task.FromResult(new ClearBuzzersResponse
-            {
-                Cleared = false
-            });
-        }
+            Cleared = _Buzzers.Count() == 0
+        }) ;
     }
 
     public override async Task<CreateGameRoomResponse> CreateGameRoom(CreateGameRoomRequest request, ServerCallContext context)
@@ -62,14 +67,14 @@ public class QuestionService : QuestionHandler.QuestionHandlerBase
         if (Games.Count > 1)
         {
             // It is intendet that this Exception has the Power to completely shut down the App
-            throw new ApplicationException("To many concurrent Games! The Service is shutting down due to a Denial of Service Attack!");
+            throw new ApplicationException("To many concurrent Games! The Service is shutting down due to a potential Denial of Service Attack!");
         }
 
-        int RoomId = _Random.Next(0, 999_999);
+        int RoomId = _RandomRoomNumber.Next(0, 999_999);
 
         while (RoomIdsInUse[RoomId] == RoomId)
         {
-            RoomId = _Random.Next();
+            RoomId = _RandomRoomNumber.Next();
         }
 
         RoomIdsInUse[RoomId] = RoomId;
@@ -78,8 +83,105 @@ public class QuestionService : QuestionHandler.QuestionHandlerBase
 
         return await Task.FromResult(new CreateGameRoomResponse
         {
-            RoomNumber = RoomId
+            RoomID = RoomId
         });
+    }
 
+    public override async Task<ParticipationResponse> AddParticipant(ParticipationRequest request, ServerCallContext context)
+    {
+        var Player = new Player(request.PlayerName, request.Role);
+        try
+        {
+            var Room = Games.Find(game => game.RoomID == request.RoomID) ?? throw new RoomNotFoundException();
+            Room.Players.Add(Player);
+        }
+        catch (RoomNotFoundException ex)
+        {
+            _Logger.LogError(ex.StackTrace);
+
+            return await Task.FromResult(new ParticipationResponse
+            {
+                SuccesStatus = false,
+                ErrorMessage = ex.Message
+            });
+        }
+
+        return await Task.FromResult(new ParticipationResponse
+        {
+            SuccesStatus = true
+        });
+    }
+
+    public override async Task<RequestFileUploadResponse> RequestQuestionFileUpload(RequestFileUploadRequest request, ServerCallContext context)
+    {
+        if (Games.Find(game => game.RoomID == request.RoomID) is null)
+        {
+            var ex = new RoomNotFoundException();
+
+            _Logger.LogError(ex.StackTrace);
+
+            return await Task.FromResult(new RequestFileUploadResponse
+            {
+                Success = false,
+                CorrelationToken = null
+            });
+        }
+
+        var correlationToken = Guid.NewGuid().ToString();
+
+        return await Task.FromResult(new RequestFileUploadResponse
+        {
+            Success = true,
+            CorrelationToken = correlationToken
+        });
+    }
+
+    public override async Task<FileUploadResponse> UploadFile(IAsyncStreamReader<FileChunk> requestStream, ServerCallContext context)
+    {
+        var _File = File.Create(QuestionStore, (int)GeneralHelper.DataSizes.Megabyte);
+        
+        List<byte[]> data = new();
+
+
+        try
+        {
+            await foreach (var Chunk in requestStream.ReadAllAsync())
+            {
+                if (Chunk.MimeType != "Json")
+                {
+                    throw new NotSupportedException();
+                }
+
+                await _File.WriteAsync(Chunk.ChunkData.ToByteArray());
+            }
+        }
+        catch (Exception ex)
+        {
+            _Logger.LogError(ex.StackTrace);
+            return await Task.FromResult(new FileUploadResponse
+            {
+                SuccessStatus = false
+            });
+        }
+
+        return await Task.FromResult(new FileUploadResponse
+        {
+            SuccessStatus = true
+        });
+    }
+
+    public override async Task<DebugLogResponse> DebugLog(DebugLogRequest request, ServerCallContext context)
+    {
+        var builder = new StringBuilder();
+        foreach (var p in _Buzzers)
+        {
+            builder.Append(p.ToString());
+            builder.Append("\n\n");
+        }
+
+        return await Task.FromResult(new DebugLogResponse
+        {
+            DebugInfo = builder.ToString()
+        });
     }
 }
