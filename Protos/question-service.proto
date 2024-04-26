@@ -15,6 +15,8 @@ service QuestionHandler {
   rpc AddParticipant (ParticipationRequest) returns (ParticipationResponse);
 
   rpc ClearBuzzers (ClearBuzzersRequest) returns (ClearBuzzersResponse);
+
+  rpc DebugLog (DebugLogRequest) returns (DebugLogResponse);
 }
 
 enum PlayerRole 
@@ -25,8 +27,9 @@ enum PlayerRole
 }
 // The request message containing the user's name.
 message BuzzerRequest {
-  string PlayerName = 1;
-  string PlayerID = 2;
+	int32 RoomID = 1;
+	string PlayerName = 2;
+	string PlayerID = 3;
 }
 
 // The response message containing the greetings.
@@ -36,7 +39,7 @@ message BuzzerReply {
 }
 
 message RequestFileUploadRequest {
-	int32 RoomNumber = 1;
+	int32 RoomID = 1;
 }
 
 message RequestFileUploadResponse {
@@ -46,7 +49,8 @@ message RequestFileUploadResponse {
 
 message FileChunk {
 	string CorrelationToken = 1;
-	bytes ChunkData = 2;
+	string MimeType = 2;
+	bytes ChunkData = 3;
 }
 
 message FileUploadResponse {
@@ -58,18 +62,19 @@ message CreateGameRoomRequest {
 }
 
 message CreateGameRoomResponse {
-	int32 RoomNumber = 1;
+	int32 RoomID = 1;
 }
 
 message ParticipationRequest {
 	string PlayerName = 1;
 	string PlayerID = 2;
 	PlayerRole Role = 3;
-	int32 RoomNumber = 4;
+	int32 RoomID = 4;
 }
 
 message ParticipationResponse {
 	bool SuccesStatus = 1;
+	optional string ErrorMessage = 2;
 }
 
 message ClearBuzzersRequest {
@@ -78,4 +83,12 @@ message ClearBuzzersRequest {
 
 message ClearBuzzersResponse {
 	bool cleared = 1;
+}
+
+message DebugLogRequest {
+
+}
+
+message DebugLogResponse {
+	string DebugInfo = 1;
 }
