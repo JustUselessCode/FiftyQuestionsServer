@@ -16,23 +16,25 @@ public class QuestionService : QuestionHandler.QuestionHandlerBase
 
     private List<Player> _Buzzers { get; set; }
 
-    private List<GameRoom> Games { get; set; }
+    private List<GameRoom> _Games { get; set; }
 
     private readonly static string QuestionStore = @"E:\50FragenStore\Questions.json";
+
+
 
     public QuestionService(ILogger<QuestionService> logger)
     {
         _Logger = logger;
-        _Buzzers = new List<Player>();
-        Games = new List<GameRoom>();
-        _RandomRoomNumber = new Random();
+        _Buzzers = new();
+        _Games = new();
+        _RandomRoomNumber = new();
         _Buzzers.Add(new Player("Test 1", PlayerRole.Player));
         _Buzzers.Add(new Player("Tim Zander", PlayerRole.Player));
     }
 
     public override async Task<BuzzerReply> Buzzer(BuzzerRequest request, ServerCallContext context)
     {
-        var wantedGame = Games.Find(Room => Room.RoomID == request.RoomID);
+        var wantedGame = _Games.Find(Room => Room.RoomID == request.RoomID);
         var wantedPlayer = wantedGame!.Players.Find(player => player.Id.ToString().Trim() == request.PlayerID);
             
         _Buzzers.Add(wantedPlayer!);
@@ -64,11 +66,11 @@ public class QuestionService : QuestionHandler.QuestionHandlerBase
     public override async Task<CreateGameRoomResponse> CreateGameRoom(CreateGameRoomRequest request, ServerCallContext context)
     {
         // Right now even though a room number up to 999 999 is supported only a single Game Room will be allowed to exist at a time!
-        if (Games.Count > 1)
+        if (_Games.Count > 1)
         {
             // It is intendet that this Exception has the Power to completely shut down the Service. 
             // The number of concurrent games will probably be increased in the 
-            throw new ApplicationException("To many concurrent Games! The Service is shutting down due to a potential Denial of Service Attack!");
+            throw new ApplicationException("To many concurrent _Games! The Service is shutting down due to a potential Denial of Service Attack!");
         }
 
         int RoomId = _RandomRoomNumber.Next(0, 999_999);
@@ -80,7 +82,7 @@ public class QuestionService : QuestionHandler.QuestionHandlerBase
 
         RoomIdsInUse[RoomId] = RoomId;
 
-        Games.Add(new GameRoom(RoomId));
+        _Games.Add(new GameRoom(RoomId));
 
         return await Task.FromResult(new CreateGameRoomResponse
         {
@@ -93,7 +95,7 @@ public class QuestionService : QuestionHandler.QuestionHandlerBase
         var Player = new Player(request.PlayerName, request.Role);
         try
         {
-            var Room = Games.Find(game => game.RoomID == request.RoomID) ?? throw new RoomNotFoundException();
+            var Room = _Games.Find(game => game.RoomID == request.RoomID) ?? throw new RoomNotFoundException();
             Room.Players.Add(Player);
         }
         catch (RoomNotFoundException ex)
@@ -115,7 +117,7 @@ public class QuestionService : QuestionHandler.QuestionHandlerBase
 
     public override async Task<RequestFileUploadResponse> RequestQuestionFileUpload(RequestFileUploadRequest request, ServerCallContext context)
     {
-        if (Games.Find(game => game.RoomID == request.RoomID) is null)
+        if (_Games.Find(game => game.RoomID == request.RoomID) is null)
         {
             var ex = new RoomNotFoundException();
 
@@ -140,19 +142,28 @@ public class QuestionService : QuestionHandler.QuestionHandlerBase
     public override async Task<FileUploadResponse> UploadFile(IAsyncStreamReader<FileChunk> requestStream, ServerCallContext context)
     {
         var _File = File.Create(QuestionStore, (int)GeneralHelper.DataSizes.Megabyte);
-
+        GameRoom? room = null;
+        int ChunkCount = 0;
         try
         {
             await foreach (var Chunk in requestStream.ReadAllAsync())
             {
+                ChunkCount++;
+
                 if (Chunk.MimeType != "Json")
                 {
                     throw new NotSupportedException();
                 }
 
+                if (ChunkCount == 1)
+                {
+                    room = _Games.Find(Room => Room.RoomID == Chunk.RoomID);
+                }
+
                 await _File.WriteAsync(Chunk.ChunkData.ToByteArray());
             }
         }
+        
         catch (Exception ex)
         {
             _Logger.LogError(ex.StackTrace);
@@ -161,6 +172,8 @@ public class QuestionService : QuestionHandler.QuestionHandlerBase
                 SuccessStatus = false
             });
         }
+
+        room.Questions = QuestionParsingHelper.ParseJsonFile(QuestionStore).questionList.ToList();
 
         return await Task.FromResult(new FileUploadResponse
         {

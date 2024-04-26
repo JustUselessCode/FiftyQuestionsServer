@@ -2,7 +2,8 @@
 
 public class GameRoom
 {
-    public List<Player> Players = new();
+    public List<Player> Players { get; set; }
+    public List<QuestionObject> Questions { get; set; }
 
     public int RoomID { get; set; }
 

@@ -51,6 +51,7 @@ message FileChunk {
 	string CorrelationToken = 1;
 	string MimeType = 2;
 	bytes ChunkData = 3;
+	int32 RoomID = 4;
 }
 
 message FileUploadResponse {
