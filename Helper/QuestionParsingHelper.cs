@@ -12,6 +12,6 @@ public class QuestionParsingHelper
 
         var data = JsonConvert.DeserializeObject<QuestionList>(jsonText);
 
-        return data;
+        return data is not null ? data : throw new JsonException("The Question File could not be parsed!");
     }
 }

@@ -1,5 +1,5 @@
 ﻿using System.Text;
-
+using QuestionService;
 namespace FiftyQuestionsServer.Entities;
 
 public class Player
@@ -12,9 +12,9 @@ public class Player
 
     public PlayerRole _Role { get; set; }
 
-    public Player(string name, PlayerRole role)
+    public Player(Guid id, string name, PlayerRole role)
     {
-        Id = Guid.NewGuid();
+        Id = id;
         Name = name;
         _Role = role;
         Winner = false;

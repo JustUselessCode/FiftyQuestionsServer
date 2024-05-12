@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option csharp_namespace = "FiftyQuestionsServer";
+option csharp_namespace = "QuestionService";
 
 service QuestionHandler {
 
@@ -34,8 +34,8 @@ message BuzzerRequest {
 
 // The response message containing the greetings.
 message BuzzerReply {
-  bool SuccessStatus = 1;
-  string PlayerName = 2;
+	bool SuccessStatus = 1;
+	string PlayerName = 2;
 }
 
 message RequestFileUploadRequest {

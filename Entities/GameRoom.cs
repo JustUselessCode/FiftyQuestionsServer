@@ -2,15 +2,16 @@
 
 public class GameRoom
 {
-    public List<Player> Players { get; set; }
-    public List<QuestionObject> Questions { get; set; }
+    public List<Player> Players = new();
+    public List<QuestionObject> Questions = new();
 
     public int RoomID { get; set; }
 
-    public GameRoom(List<Player> players, int roomID)
+    public GameRoom(List<Player> players, List<QuestionObject> questions, int roomID)
     {
         Players = players;
         RoomID = roomID;
+        Questions = questions;
     }
 
     public GameRoom(int roomID)
