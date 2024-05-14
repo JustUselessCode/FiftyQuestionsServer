@@ -38,7 +38,7 @@ public class FiftyQuestionService : QuestionHandler.QuestionHandlerBase
 
 		var Reply = new BuzzerReply
 		{
-			PlayerName = wantedPlayer!.Name,
+			PlayerName = _Buzzers[0].Name,
 			SuccessStatus = _Buzzers.IndexOf(wantedPlayer) == 0,
 		};
 
