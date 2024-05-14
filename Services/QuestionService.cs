@@ -140,6 +140,7 @@ public class FiftyQuestionService : QuestionHandler.QuestionHandlerBase
 		var _File = File.Create(QuestionStore, (int)GeneralHelper.DataSizes.Megabyte);
 		GameRoom? room = null;
 		int ChunkCount = 0;
+
 		try
 		{
 			await foreach (var Chunk in requestStream.ReadAllAsync())

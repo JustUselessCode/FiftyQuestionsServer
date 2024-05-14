@@ -59,7 +59,7 @@ message FileUploadResponse {
 }
 
 message CreateGameRoomRequest {
-	int32 PlayerAmount = 1;
+
 }
 
 message CreateGameRoomResponse {
