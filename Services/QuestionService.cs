@@ -69,11 +69,11 @@ public class FiftyQuestionService : QuestionHandler.QuestionHandlerBase
 			throw new ApplicationException("To many concurrent _Games! The Service is shutting down due to a potential Denial of Service Attack!");
 		}
 
-		int RoomId = _RandomRoomNumber.Next(0, 1_000_000);
+		var RoomId = _RandomRoomNumber.Next(0, 1_000_000);
 
 		while (RoomIdsInUse[RoomId] == RoomId)
 		{
-			RoomId = _RandomRoomNumber.Next();
+			RoomId = _RandomRoomNumber.Next(0, 1_000_000);
 		}
 
 		RoomIdsInUse[RoomId] = RoomId;
@@ -192,4 +192,9 @@ public class FiftyQuestionService : QuestionHandler.QuestionHandlerBase
 			DebugInfo = builder.ToString()
 		});
 	}
+
+    public override async Task<QuestionResponse> AskForCurrentQuestion(QuestionRequest request, ServerCallContext context)
+    {
+		throw new NotImplementedException();
+    }
 }

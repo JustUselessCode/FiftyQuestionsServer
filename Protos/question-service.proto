@@ -17,6 +17,8 @@ service QuestionHandler {
   rpc ClearBuzzers (ClearBuzzersRequest) returns (ClearBuzzersResponse);
 
   rpc DebugLog (DebugLogRequest) returns (DebugLogResponse);
+
+  rpc AskForCurrentQuestion (QuestionRequest) returns (QuestionResponse);
 }
 
 enum PlayerRole 
@@ -37,6 +39,15 @@ message BuzzerReply {
 	bool SuccessStatus = 1;
 	string PlayerName = 2;
 }
+
+message QuestionRequest {
+	
+}
+
+message QuestionResponse {
+	string Question = 1;
+}
+
 
 message RequestFileUploadRequest {
 	int32 RoomID = 1;
